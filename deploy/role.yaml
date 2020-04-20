@@ -70,6 +70,7 @@ rules:
   - mariadb.persistentsys
   resources:
   - '*'
+  - mariadbbackups
   verbs:
   - create
   - delete

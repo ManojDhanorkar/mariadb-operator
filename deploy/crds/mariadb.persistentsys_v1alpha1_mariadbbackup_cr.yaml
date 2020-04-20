@@ -1,0 +1,7 @@
+apiVersion: mariadb.persistentsys/v1alpha1
+kind: MariaDBBackup
+metadata:
+  name: example-mariadbbackup
+spec:
+  # Add fields here
+  size: 3
