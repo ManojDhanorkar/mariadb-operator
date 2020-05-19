@@ -109,6 +109,11 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 		return *result, err
 	}
 
+	result, err = r.ensureServiceMonitor(request, instance, r.monitorServiceMonitor(instance))
+	if result != nil {
+		return *result, err
+	}
+
 	err = r.updateMonitorStatus(instance)
 	if err != nil {
 		// Requeue the request if the status could not be updated

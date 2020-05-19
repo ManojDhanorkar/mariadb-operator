@@ -3,14 +3,15 @@ package monitor
 import (
 	"context"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	mariadbv1alpha1 "github.com/persistentsys/mariadb-operator/pkg/apis/mariadb/v1alpha1"
 	"github.com/persistentsys/mariadb-operator/pkg/utils"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const monitorPort = 9104
@@ -88,12 +89,45 @@ func (r *ReconcileMonitor) monitorService(v *mariadbv1alpha1.Monitor) *corev1.Se
 	return s
 }
 
+func (r *ReconcileMonitor) monitorServiceMonitor(v *mariadbv1alpha1.Monitor) *monitoringv1.ServiceMonitor {
+	//labels := utils.ServiceMonitorLabels(v, "monitor-app")
+
+	s := &monitoringv1.ServiceMonitor{
+
+		ObjectMeta: v12.ObjectMeta{
+			Name:      "monitor-app",
+			Namespace: v.Namespace,
+			Labels: map[string]string{
+				"tier": "monitor-app",
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{{
+				Path: "/metrics",
+				Port: "monitor",
+			}},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"tier": "monitor-app",
+				},
+			},
+		},
+	}
+
+	controllerutil.SetControllerReference(v, s, r.scheme)
+	return s
+}
+
 func monitorDeploymentName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-deployment"
 }
 
 func monitorServiceName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-service"
+}
+
+func monitorServiceMonitorName(v *mariadbv1alpha1.Monitor) string {
+	return v.Name + "-serviceMonitor"
 }
 
 func (r *ReconcileMonitor) updateMonitorStatus(v *mariadbv1alpha1.Monitor) error {

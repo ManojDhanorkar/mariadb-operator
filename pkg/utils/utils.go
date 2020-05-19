@@ -27,3 +27,11 @@ func MonitorLabels(v *v1alpha1.Monitor, tier string) map[string]string {
 		"tier":       tier,
 	}
 }
+
+func ServiceMonitorLabels(v *v1alpha1.Monitor, tier string) map[string]string {
+	return map[string]string{
+		"app":        tier,
+		"Monitor_cr": v.Name,
+		"tier":       tier,
+	}
+}
