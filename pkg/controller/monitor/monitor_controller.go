@@ -114,6 +114,12 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 		return *result, err
 	}
 
+	// TODO:  Create grafana dashboard
+	/*result, err = r.ensureGrafanaDashboard(request, instance, r.monitorGrafanaDashboard(instance))
+	if result != nil {
+		return *result, err
+	}*/
+
 	err = r.updateMonitorStatus(instance)
 	if err != nil {
 		// Requeue the request if the status could not be updated

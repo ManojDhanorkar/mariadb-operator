@@ -4,6 +4,7 @@ import (
 	"context"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	grafanav1alpha1 "github.com/integr8ly/grafana-operator/pkg/apis/integreatly/v1alpha1"
 	mariadbv1alpha1 "github.com/persistentsys/mariadb-operator/pkg/apis/mariadb/v1alpha1"
 	"github.com/persistentsys/mariadb-operator/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -118,6 +119,33 @@ func (r *ReconcileMonitor) monitorServiceMonitor(v *mariadbv1alpha1.Monitor) *mo
 	return s
 }
 
+func (r *ReconcileMonitor) monitorGrafanaDashboard(v *mariadbv1alpha1.Monitor) *grafanav1alpha1.GrafanaDashboard {
+	//labels := utils.ServiceMonitorLabels(v, "monitor-app")
+
+	s := &grafanav1alpha1.GrafanaDashboard{
+		ObjectMeta: v12.ObjectMeta{
+			Name:      "GrafanaDashboard",
+			Namespace: v.Namespace,
+			Labels: map[string]string{
+				"monitoring-key": "Key",
+			},
+		},
+		Spec: grafanav1alpha1.GrafanaDashboardSpec{
+			Json: DashboardJSON,
+			Name: "mariadb.json",
+			Plugins: []grafanav1alpha1.GrafanaPlugin{
+				{
+					Name:    "grafana-piechart-panel",
+					Version: "1.5.0",
+				},
+			},
+		},
+	}
+
+	controllerutil.SetControllerReference(v, s, r.scheme)
+	return s
+}
+
 func monitorDeploymentName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-deployment"
 }
@@ -126,10 +154,10 @@ func monitorServiceName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-service"
 }
 
-func monitorServiceMonitorName(v *mariadbv1alpha1.Monitor) string {
+/*func monitorServiceMonitorName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-serviceMonitor"
 }
-
+*/
 func (r *ReconcileMonitor) updateMonitorStatus(v *mariadbv1alpha1.Monitor) error {
 	err := r.client.Status().Update(context.TODO(), v)
 	return err
