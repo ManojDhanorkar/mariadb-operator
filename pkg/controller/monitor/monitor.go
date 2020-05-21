@@ -17,10 +17,11 @@ import (
 
 const monitorPort = 9104
 const monitorPortName = "monitor"
+const monitorApp = "monitor-app"
 
 func (r *ReconcileMonitor) monitorDeployment(v *mariadbv1alpha1.Monitor) *appsv1.Deployment {
 
-	labels := utils.MonitorLabels(v, "monitor-app")
+	labels := utils.MonitorLabels(v, monitorApp)
 
 	size := v.Spec.Size
 	image := v.Spec.Image
@@ -44,10 +45,10 @@ func (r *ReconcileMonitor) monitorDeployment(v *mariadbv1alpha1.Monitor) *appsv1
 					Containers: []corev1.Container{{
 						Image:           image,
 						ImagePullPolicy: corev1.PullAlways,
-						Name:            "monitor-app",
+						Name:            monitorApp,
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: monitorPort,
-							Name:          "monitor",
+							Name:          monitorPortName,
 						}},
 						Env: []corev1.EnvVar{
 							{
@@ -66,7 +67,7 @@ func (r *ReconcileMonitor) monitorDeployment(v *mariadbv1alpha1.Monitor) *appsv1
 }
 
 func (r *ReconcileMonitor) monitorService(v *mariadbv1alpha1.Monitor) *corev1.Service {
-	labels := utils.MonitorLabels(v, "monitor-app")
+	labels := utils.MonitorLabels(v, monitorApp)
 
 	s := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -91,25 +92,24 @@ func (r *ReconcileMonitor) monitorService(v *mariadbv1alpha1.Monitor) *corev1.Se
 }
 
 func (r *ReconcileMonitor) monitorServiceMonitor(v *mariadbv1alpha1.Monitor) *monitoringv1.ServiceMonitor {
-	//labels := utils.ServiceMonitorLabels(v, "monitor-app")
+	labels := utils.ServiceMonitorLabels(v, monitorApp)
 
 	s := &monitoringv1.ServiceMonitor{
 
 		ObjectMeta: v12.ObjectMeta{
-			Name:      "monitor-app",
+			Name:      monitorServiceMonitorName(v),
 			Namespace: v.Namespace,
-			Labels: map[string]string{
-				"tier": "monitor-app",
-			},
+			Labels:    labels,
 		},
 		Spec: monitoringv1.ServiceMonitorSpec{
+
 			Endpoints: []monitoringv1.Endpoint{{
 				Path: "/metrics",
-				Port: "monitor",
+				Port: monitorPortName,
 			}},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"tier": "monitor-app",
+					"tier": monitorApp,
 				},
 			},
 		},
@@ -120,15 +120,14 @@ func (r *ReconcileMonitor) monitorServiceMonitor(v *mariadbv1alpha1.Monitor) *mo
 }
 
 func (r *ReconcileMonitor) monitorGrafanaDashboard(v *mariadbv1alpha1.Monitor) *grafanav1alpha1.GrafanaDashboard {
-	//labels := utils.ServiceMonitorLabels(v, "monitor-app")
+
+	labels := utils.ServiceMonitorLabels(v, monitorApp)
 
 	s := &grafanav1alpha1.GrafanaDashboard{
 		ObjectMeta: v12.ObjectMeta{
 			Name:      "GrafanaDashboard",
 			Namespace: v.Namespace,
-			Labels: map[string]string{
-				"monitoring-key": "Key",
-			},
+			Labels:    labels,
 		},
 		Spec: grafanav1alpha1.GrafanaDashboardSpec{
 			Json: DashboardJSON,
@@ -154,10 +153,10 @@ func monitorServiceName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-service"
 }
 
-/*func monitorServiceMonitorName(v *mariadbv1alpha1.Monitor) string {
+func monitorServiceMonitorName(v *mariadbv1alpha1.Monitor) string {
 	return v.Name + "-serviceMonitor"
 }
-*/
+
 func (r *ReconcileMonitor) updateMonitorStatus(v *mariadbv1alpha1.Monitor) error {
 	err := r.client.Status().Update(context.TODO(), v)
 	return err
