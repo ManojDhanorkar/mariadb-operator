@@ -1,0 +1,12 @@
+apiVersion: mariadb.xyzcompany.com/v1alpha1
+kind: MariaDB
+metadata:
+  labels:
+    app.kubernetes.io/name: mariadb
+    app.kubernetes.io/instance: mariadb-sample
+    app.kubernetes.io/part-of: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: mariadb-operator
+  name: mariadb-sample
+spec:
+  # TODO(user): Add fields here
