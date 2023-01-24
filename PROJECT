@@ -17,4 +17,13 @@ resources:
   kind: MariaDB
   path: github.com/ManojDhanorkar/mariadb-operator/apis/mariadb/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: xyzcompany.com
+  group: mariadb
+  kind: MariaDBBackup
+  path: github.com/ManojDhanorkar/mariadb-operator/apis/mariadb/v1alpha1
+  version: v1alpha1
 version: "3"
