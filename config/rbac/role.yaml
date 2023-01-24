@@ -1,0 +1,59 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbbackups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbbackups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbbackups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbs/status
+  verbs:
+  - get
+  - patch
+  - update
