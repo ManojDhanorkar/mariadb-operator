@@ -10,3 +10,5 @@ metadata:
   name: mariadb-sample
 spec:
   # TODO(user): Add fields here
+
+  #this is sample
