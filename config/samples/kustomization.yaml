@@ -2,4 +2,5 @@
 resources:
 - mariadb_v1alpha1_mariadb.yaml
 - mariadb_v1alpha1_mariadbbackup.yaml
+- mariadb_v1alpha1_mariadbmonitor.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

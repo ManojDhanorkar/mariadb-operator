@@ -1,0 +1,27 @@
+# permissions for end users to view mariadbmonitors.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: mariadbmonitor-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: mariadb-operator
+    app.kubernetes.io/part-of: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: mariadbmonitor-viewer-role
+rules:
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors/status
+  verbs:
+  - get
