@@ -1,0 +1,31 @@
+# permissions for end users to edit mariadbmonitors.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: mariadbmonitor-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: mariadb-operator
+    app.kubernetes.io/part-of: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: mariadbmonitor-editor-role
+rules:
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors/status
+  verbs:
+  - get

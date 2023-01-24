@@ -1,0 +1,12 @@
+apiVersion: mariadb.xyzcompany.com/v1alpha1
+kind: MariaDBMonitor
+metadata:
+  labels:
+    app.kubernetes.io/name: mariadbmonitor
+    app.kubernetes.io/instance: mariadbmonitor-sample
+    app.kubernetes.io/part-of: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: mariadb-operator
+  name: mariadbmonitor-sample
+spec:
+  # TODO(user): Add fields here

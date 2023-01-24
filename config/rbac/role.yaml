@@ -34,6 +34,32 @@ rules:
 - apiGroups:
   - mariadb.xyzcompany.com
   resources:
+  - mariadbmonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
+  - mariadbmonitors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - mariadb.xyzcompany.com
+  resources:
   - mariadbs
   verbs:
   - create
