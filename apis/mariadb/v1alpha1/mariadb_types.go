@@ -66,8 +66,9 @@ type MariaDBStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // MariaDB is the Schema for the mariadbs API
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:path=mariadbs,scope=Namespaced
+
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:path=mariadbs,scope=Namespaced
 //+kubebuilder:object:root=true
 
 // MariaDB is the Schema for the mariadbs API

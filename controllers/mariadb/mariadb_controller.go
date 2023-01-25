@@ -34,7 +34,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -278,7 +277,7 @@ func (r *MariaDBReconciler) mariadbDeployment(v *mariadbv1alpha1.MariaDB) *appsv
 			},
 		},
 	}
-	controllerutil.SetControllerReference(v, dep, r.Scheme)
+	ctrl.SetControllerReference(v, dep, r.Scheme)
 	return dep
 }
 
@@ -337,7 +336,7 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 	}
 
 	if applyChange {
-		err = r.Client.Update(context.TODO(), dep)
+		err = r.Client.Update(ctx, dep)
 		if err != nil {
 			log.Error(err, "Failed to update Deployment.", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
 			return &ctrl.Result{}, err
@@ -374,7 +373,7 @@ func (r *MariaDBReconciler) mariadbService(v *mariadbv1alpha1.MariaDB) *corev1.S
 		},
 	}
 
-	controllerutil.SetControllerReference(v, s, r.Scheme)
+	ctrl.SetControllerReference(v, s, r.Scheme)
 	return s
 }
 
@@ -526,6 +525,6 @@ func (r *MariaDBReconciler) mariadbAuthSecret(v *mariadbv1alpha1.MariaDB) *corev
 			"password": []byte(password),
 		},
 	}
-	controllerutil.SetControllerReference(v, secret, r.Scheme)
+	ctrl.SetControllerReference(v, secret, r.Scheme)
 	return secret
 }
