@@ -36,7 +36,7 @@ import (
 
 var rfLog = logf.Log.WithName("resource_fetch")
 
-var log = logf.Log.WithName("controller_server")
+var logger = logf.Log.WithName("controller_server")
 var volLog = logf.Log.WithName("resource_volumes")
 
 // var ctx context.Context
@@ -48,7 +48,7 @@ const pvClaimName = "mariadb-pv-claim"
 
 func NewMariaDbPVC(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolumeClaim {
 	volLog.Info("Creating new PVC for MariaDB")
-	labels := Labels(v, "mariadb")
+	labels := MariaDBLabels(v, "mariadb")
 	storageClassName := "manual"
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,7 +89,7 @@ func GetMariadbVolumeClaimName(v *mariadbv1alpha1.MariaDB) string {
 
 func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolume {
 	volLog.Info("Creating new PV for MariaDB")
-	labels := Labels(v, "mariadb")
+	labels := MariaDBLabels(v, "mariadb")
 	pv := &corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: GetMariadbVolumeName(v),
@@ -120,15 +120,15 @@ func GetMariadbVolumeName(v *mariadbv1alpha1.MariaDB) string {
 
 // FetchPVByName search in the cluster for PV managed by the Backup Controller
 func FetchPVByName(name string, Client client.Client) (*corev1.PersistentVolume, error) {
-	reqLogger := log.WithValues("PV Name", name)
+	reqLogger := logger.WithValues("PV Name", name)
 	reqLogger.Info("Fetching Persistent Volume")
 
 	pv := &corev1.PersistentVolume{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, pv)
+	err := Client.Get(context.TODO(), types.NamespacedName{Name: name}, pv)
 	return pv, err
 }
 
-func Labels(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
+func MariaDBLabels(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
 	return map[string]string{
 		"app":        "MariaDB",
 		"MariaDB_cr": v.Name,
@@ -191,11 +191,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// reqLogger.Info("Reconciling MariaDB")
 
-	reqLogger := log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
+	reqLogger := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	//log := r.Log.WithValues("AWSVMScheduler", req.NamespacedName)
 	reqLogger.Info("Reconciling MariaDB")
 
-	log.Info("Reconciling MariaDB")
+	logger.Info("Reconciling MariaDB")
 
 	// Fetch the MariaDB instance
 	instance := &mariadbv1alpha1.MariaDB{}
@@ -261,7 +261,7 @@ func mariadbDeploymentName(v *mariadbv1alpha1.MariaDB) string {
 }
 
 func (r *MariaDBReconciler) mariadbDeployment(v *mariadbv1alpha1.MariaDB) *appsv1.Deployment {
-	labels := Labels(v, "mariadb")
+	labels := MariaDBLabels(v, "mariadb")
 	size := v.Spec.Size
 	image := v.Spec.Image
 
@@ -362,12 +362,12 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 	if err != nil && errors.IsNotFound(err) {
 
 		// Create the deployment
-		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+		logger.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
 		err = r.Client.Create(context.TODO(), dep)
 
 		if err != nil {
 			// Deployment failed
-			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+			logger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
 			return &ctrl.Result{}, err
 		} else {
 			// Deployment was successful
@@ -375,7 +375,7 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 		}
 	} else if err != nil {
 		// Error that isn't due to the deployment not existing
-		log.Error(err, "Failed to get Deployment")
+		logger.Error(err, "Failed to get Deployment")
 		return &ctrl.Result{}, err
 	}
 
@@ -405,10 +405,10 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 	if applyChange {
 		err = r.Client.Update(context.TODO(), dep)
 		if err != nil {
-			log.Error(err, "Failed to update Deployment.", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
+			logger.Error(err, "Failed to update Deployment.", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
 			return &ctrl.Result{}, err
 		}
-		log.Info("Updated Deployment image. ")
+		logger.Info("Updated Deployment image. ")
 	}
 
 	return nil, nil
@@ -420,7 +420,7 @@ func mariadbServiceName(v *mariadbv1alpha1.MariaDB) string {
 }
 
 func (r *MariaDBReconciler) mariadbService(v *mariadbv1alpha1.MariaDB) *corev1.Service {
-	labels := Labels(v, "mariadb")
+	labels := MariaDBLabels(v, "mariadb")
 
 	s := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -456,12 +456,12 @@ func (r *MariaDBReconciler) ensureService(req ctrl.Request,
 	if err != nil && errors.IsNotFound(err) {
 
 		// Create the service
-		log.Info("Creating a new Service", "Service.Namespace", s.Namespace, "Service.Name", s.Name)
+		logger.Info("Creating a new Service", "Service.Namespace", s.Namespace, "Service.Name", s.Name)
 		err = r.Client.Create(context.TODO(), s)
 
 		if err != nil {
 			// Creation failed
-			log.Error(err, "Failed to create new Service", "Service.Namespace", s.Namespace, "Service.Name", s.Name)
+			logger.Error(err, "Failed to create new Service", "Service.Namespace", s.Namespace, "Service.Name", s.Name)
 			return &ctrl.Result{}, err
 		} else {
 			// Creation was successful
@@ -469,7 +469,7 @@ func (r *MariaDBReconciler) ensureService(req ctrl.Request,
 		}
 	} else if err != nil {
 		// Error that isn't due to the service not existing
-		log.Error(err, "Failed to get Service")
+		logger.Error(err, "Failed to get Service")
 		return &ctrl.Result{}, err
 	}
 
@@ -487,12 +487,12 @@ func (r *MariaDBReconciler) ensureSecret(req ctrl.Request,
 	}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Create the secret
-		log.Info("Creating a new secret", "Secret.Namespace", s.Namespace, "Secret.Name", s.Name)
+		logger.Info("Creating a new secret", "Secret.Namespace", s.Namespace, "Secret.Name", s.Name)
 		err = r.Client.Create(context.TODO(), s)
 
 		if err != nil {
 			// Creation failed
-			log.Error(err, "Failed to create new Secret", "Secret.Namespace", s.Namespace, "Secret.Name", s.Name)
+			logger.Error(err, "Failed to create new Secret", "Secret.Namespace", s.Namespace, "Secret.Name", s.Name)
 			return &ctrl.Result{}, err
 		} else {
 			// Creation was successful
@@ -500,7 +500,7 @@ func (r *MariaDBReconciler) ensureSecret(req ctrl.Request,
 		}
 	} else if err != nil {
 		// Error that isn't due to the secret not existing
-		log.Error(err, "Failed to get Secret")
+		logger.Error(err, "Failed to get Secret")
 		return &ctrl.Result{}, err
 	}
 
@@ -516,13 +516,13 @@ func (r *MariaDBReconciler) ensurePV(req ctrl.Request,
 
 	if err != nil && errors.IsNotFound(err) {
 		// Create Persistent Volume
-		log.Info("Creating a new PV", "PV.Name", pvName)
+		logger.Info("Creating a new PV", "PV.Name", pvName)
 
 		pv := NewMariaDbPV(instance, r.Scheme)
 		err := r.Client.Create(context.TODO(), pv)
 		if err != nil {
 			// Creation failed
-			log.Error(err, "Failed to create new PV", "PV.Name", pvName)
+			logger.Error(err, "Failed to create new PV", "PV.Name", pvName)
 			return &ctrl.Result{}, err
 		} else {
 			// Creation was successful
@@ -530,7 +530,7 @@ func (r *MariaDBReconciler) ensurePV(req ctrl.Request,
 		}
 	} else if err != nil {
 		// Error that isn't due to the service not existing
-		log.Error(err, "Failed to get PV")
+		logger.Error(err, "Failed to get PV")
 		return &ctrl.Result{}, err
 	}
 	return nil, nil
@@ -545,13 +545,13 @@ func (r *MariaDBReconciler) ensurePVC(req ctrl.Request,
 
 	if err != nil && errors.IsNotFound(err) {
 		// Create Persistent Volume Claim
-		log.Info("Creating a new PVC", "PVC.Name", pvcName)
+		logger.Info("Creating a new PVC", "PVC.Name", pvcName)
 
-		pvc := resource.NewMariaDbPVC(instance, r.Scheme)
+		pvc := NewMariaDbPVC(instance, r.Scheme)
 		err := r.Client.Create(context.TODO(), pvc)
 		if err != nil {
 			// Creation failed
-			log.Error(err, "Failed to create new PVC", "PV.Name", pvcName, "PVC.Namespace", instance.Namespace)
+			logger.Error(err, "Failed to create new PVC", "PV.Name", pvcName, "PVC.Namespace", instance.Namespace)
 			return &ctrl.Result{}, err
 		} else {
 			// Creation was successful
@@ -559,7 +559,7 @@ func (r *MariaDBReconciler) ensurePVC(req ctrl.Request,
 		}
 	} else if err != nil {
 		// Error that isn't due to the service not existing
-		log.Error(err, "Failed to get PVC")
+		logger.Error(err, "Failed to get PVC")
 		return &ctrl.Result{}, err
 	}
 	return nil, nil

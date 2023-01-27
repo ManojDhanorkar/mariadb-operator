@@ -35,13 +35,57 @@ spec:
           spec:
             description: MariaDBSpec defines the desired state of MariaDB
             properties:
-              foo:
+              dataStoragePath:
+                description: Database storage Path
+                type: string
+              dataStorageSize:
+                description: Database storage Size (Ex. 1Gi, 100Mi)
+                type: string
+              database:
+                description: New Database name
+                type: string
+              image:
+                description: Image name with version
+                type: string
+              password:
+                description: Database additional user password (base64 encoded)
+                type: string
+              port:
+                description: Port number exposed for Database service
+                format: int32
+                type: integer
+              rootpwd:
+                description: Root user password
+                type: string
+              size:
                 description: Foo is an example field of MariaDB. Edit mariadb_types.go
                   to remove/update
+                format: int32
+                type: integer
+              username:
+                description: Database additional user details (base64 encoded)
                 type: string
+            required:
+            - dataStoragePath
+            - dataStorageSize
+            - database
+            - image
+            - password
+            - port
+            - rootpwd
+            - size
+            - username
             type: object
           status:
             description: MariaDBStatus defines the observed state of MariaDB
+            properties:
+              nodes:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true
