@@ -19,51 +19,114 @@ package mariadb
 import (
 	"context"
 
-	"aws-vm/go/pkg/mod/github.com/go-logr/logr@v1.2.0"
-	"aws-vm/go/pkg/mod/k8s.io/apimachinery@v0.25.0/pkg/api/errors"
-	"aws-vm/go/pkg/mod/k8s.io/apimachinery@v0.25.0/pkg/types"
-	"aws-vm/go/pkg/mod/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile"
-
+	mariadbv1alpha1 "github.com/ManojDhanorkar/mariadb-operator/apis/mariadb/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/persistentsys/mariadb-operator/pkg/resource"
-
-	"github.com/persistentsys/mariadb-operator/pkg/service"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	corev1 "k8s.io/api/core/v1"
-
-	appsv1 "k8s.io/api/apps/v1"
-
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
-	//"k8s.io/apimachinery/pkg/types"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-
-	mariadbv1alpha1 "github.com/ManojDhanorkar/mariadb-operator/apis/mariadb/v1alpha1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var ctx context.Context
-var log = ctrllog.FromContext(ctx)
+var rfLog = logf.Log.WithName("resource_fetch")
+
+var log = logf.Log.WithName("controller_server")
+var volLog = logf.Log.WithName("resource_volumes")
+
+// var ctx context.Context
+// var log = ctrllog.FromContext(ctx)
 
 const mariadbPort = 80
 const pvStorageName = "mariadb-pv-storage"
 const pvClaimName = "mariadb-pv-claim"
+
+func NewMariaDbPVC(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolumeClaim {
+	volLog.Info("Creating new PVC for MariaDB")
+	labels := Labels(v, "mariadb")
+	storageClassName := "manual"
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      GetMariadbVolumeClaimName(v),
+			Namespace: v.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			StorageClassName: &storageClassName,
+			AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(v.Spec.DataStorageSize),
+				},
+			},
+			VolumeName: GetMariadbVolumeName(v),
+		},
+	}
+
+	volLog.Info("PVC created for MariaDB ")
+	ctrl.SetControllerReference(v, pvc, scheme)
+	return pvc
+}
+
+// FetchPVCByNameAndNS search in the cluster for PVC managed by the Backup Controller
+func FetchPVCByNameAndNS(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
+	reqLogger := rfLog.WithValues("PVC Name", name, "PVC Namespace", namespace)
+	reqLogger.Info("Fetching Persistent Volume Claim")
+
+	pvc := &corev1.PersistentVolumeClaim{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, pvc)
+	return pvc, err
+}
+
+func GetMariadbVolumeClaimName(v *mariadbv1alpha1.MariaDB) string {
+	return v.Name + "-pv-claim"
+}
+
+func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolume {
+	volLog.Info("Creating new PV for MariaDB")
+	labels := Labels(v, "mariadb")
+	pv := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: GetMariadbVolumeName(v),
+			// Namespace: v.Namespace,
+			Labels: labels,
+		},
+		Spec: corev1.PersistentVolumeSpec{
+			StorageClassName: "manual",
+			Capacity: corev1.ResourceList{
+				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(v.Spec.DataStorageSize),
+			},
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			PersistentVolumeSource: corev1.PersistentVolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: v.Spec.DataStoragePath},
+			},
+		},
+	}
+
+	volLog.Info("PV created for MariaDB ")
+	ctrl.SetControllerReference(v, pv, scheme)
+	return pv
+}
+
+func GetMariadbVolumeName(v *mariadbv1alpha1.MariaDB) string {
+	return v.Name + "-" + v.Namespace + "-pv"
+}
+
+// FetchPVByName search in the cluster for PV managed by the Backup Controller
+func FetchPVByName(name string, Client client.Client) (*corev1.PersistentVolume, error) {
+	reqLogger := log.WithValues("PV Name", name)
+	reqLogger.Info("Fetching Persistent Volume")
+
+	pv := &corev1.PersistentVolume{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: name}, pv)
+	return pv, err
+}
 
 func Labels(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
 	return map[string]string{
@@ -105,7 +168,7 @@ func mysqlAuthName() string {
 type MariaDBReconciler struct {
 	Client client.Client
 	Scheme *runtime.Scheme
-	Log    logr.Logger
+	// Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
@@ -292,7 +355,7 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 
 	// See if deployment already exists and create if it doesn't
 	found := &appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{
+	err := r.Client.Get(context.TODO(), types.NamespacedName{
 		Name:      dep.Name,
 		Namespace: instance.Namespace,
 	}, found)
@@ -300,12 +363,12 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 
 		// Create the deployment
 		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		err = r.Client.Create(ctx, dep)
+		err = r.Client.Create(context.TODO(), dep)
 
 		if err != nil {
 			// Deployment failed
 			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-			return &reconcile.Result{}, err
+			return &ctrl.Result{}, err
 		} else {
 			// Deployment was successful
 			return nil, nil
@@ -340,7 +403,7 @@ func (r *MariaDBReconciler) ensureDeployment(req ctrl.Request,
 	}
 
 	if applyChange {
-		err = r.Client.Update(ctx, dep)
+		err = r.Client.Update(context.TODO(), dep)
 		if err != nil {
 			log.Error(err, "Failed to update Deployment.", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
 			return &ctrl.Result{}, err
@@ -386,7 +449,7 @@ func (r *MariaDBReconciler) ensureService(req ctrl.Request,
 	s *corev1.Service,
 ) (*ctrl.Result, error) {
 	found := &corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{
+	err := r.Client.Get(context.TODO(), types.NamespacedName{
 		Name:      s.Name,
 		Namespace: instance.Namespace,
 	}, found)
@@ -394,7 +457,7 @@ func (r *MariaDBReconciler) ensureService(req ctrl.Request,
 
 		// Create the service
 		log.Info("Creating a new Service", "Service.Namespace", s.Namespace, "Service.Name", s.Name)
-		err = r.Client.Create(ctx, s)
+		err = r.Client.Create(context.TODO(), s)
 
 		if err != nil {
 			// Creation failed
@@ -418,14 +481,14 @@ func (r *MariaDBReconciler) ensureSecret(req ctrl.Request,
 	s *corev1.Secret,
 ) (*ctrl.Result, error) {
 	found := &corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{
+	err := r.Client.Get(context.TODO(), types.NamespacedName{
 		Name:      s.Name,
 		Namespace: instance.Namespace,
 	}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Create the secret
 		log.Info("Creating a new secret", "Secret.Namespace", s.Namespace, "Secret.Name", s.Name)
-		err = r.Client.Create(ctx, s)
+		err = r.Client.Create(context.TODO(), s)
 
 		if err != nil {
 			// Creation failed
@@ -448,14 +511,14 @@ func (r *MariaDBReconciler) ensureSecret(req ctrl.Request,
 func (r *MariaDBReconciler) ensurePV(req ctrl.Request,
 	instance *mariadbv1alpha1.MariaDB,
 ) (*ctrl.Result, error) {
-	pvName := resource.GetMariadbVolumeName(instance)
-	_, err := service.FetchPVByName(pvName, r.Client)
+	pvName := GetMariadbVolumeName(instance)
+	_, err := FetchPVByName(pvName, r.Client)
 
 	if err != nil && errors.IsNotFound(err) {
 		// Create Persistent Volume
 		log.Info("Creating a new PV", "PV.Name", pvName)
 
-		pv := resource.NewMariaDbPV(instance, r.Scheme)
+		pv := NewMariaDbPV(instance, r.Scheme)
 		err := r.Client.Create(context.TODO(), pv)
 		if err != nil {
 			// Creation failed
@@ -477,8 +540,8 @@ func (r *MariaDBReconciler) ensurePV(req ctrl.Request,
 func (r *MariaDBReconciler) ensurePVC(req ctrl.Request,
 	instance *mariadbv1alpha1.MariaDB,
 ) (*ctrl.Result, error) {
-	pvcName := resource.GetMariadbVolumeClaimName(instance)
-	_, err := service.FetchPVCByNameAndNS(pvcName, instance.Namespace, r.Client)
+	pvcName := GetMariadbVolumeClaimName(instance)
+	_, err := FetchPVCByNameAndNS(pvcName, instance.Namespace, r.Client)
 
 	if err != nil && errors.IsNotFound(err) {
 		// Create Persistent Volume Claim
@@ -505,7 +568,7 @@ func (r *MariaDBReconciler) ensurePVC(req ctrl.Request,
 // updatestatus
 func (r *MariaDBReconciler) updateMariadbStatus(v *mariadbv1alpha1.MariaDB) error {
 	//v.Status.BackendImage = mariadbImage
-	err := r.Client.Status().Update(ctx, v)
+	err := r.Client.Status().Update(context.TODO(), v)
 	return err
 }
 
