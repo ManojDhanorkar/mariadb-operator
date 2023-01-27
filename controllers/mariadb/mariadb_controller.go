@@ -97,6 +97,10 @@ func Labels(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
 // 	}
 // }
 
+func mysqlAuthName() string {
+	return "mysql-auth"
+}
+
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	Client client.Client
@@ -506,9 +510,7 @@ func (r *MariaDBReconciler) updateMariadbStatus(v *mariadbv1alpha1.MariaDB) erro
 }
 
 // auth secret
-func mysqlAuthName() string {
-	return "mysql-auth"
-}
+
 func (r *MariaDBReconciler) mariadbAuthSecret(v *mariadbv1alpha1.MariaDB) *corev1.Secret {
 
 	username := v.Spec.Username
