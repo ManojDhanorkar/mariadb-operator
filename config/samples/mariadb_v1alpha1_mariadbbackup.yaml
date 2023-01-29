@@ -9,4 +9,15 @@ metadata:
     app.kubernetes.io/created-by: mariadb-operator
   name: mariadbbackup-sample
 spec:
-  # TODO(user): Add fields here
+  # Backup Path
+  backupPath: "/mnt/backup"
+
+  # Backup Size (Ex. 1Gi, 100Mi)
+  backupSize: "1Gi" 
+
+  # Schedule period for the CronJob.
+  # This spec allow you setup the backup frequency
+  # Default: "0 0 * * *" # daily at 00:00
+  schedule: "0 0 * * *"
+ 
+

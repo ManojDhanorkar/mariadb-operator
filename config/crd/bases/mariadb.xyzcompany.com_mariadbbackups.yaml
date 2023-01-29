@@ -35,13 +35,44 @@ spec:
           spec:
             description: MariaDBBackupSpec defines the desired state of MariaDBBackup
             properties:
-              foo:
+              backupPath:
                 description: Foo is an example field of MariaDBBackup. Edit mariadbbackup_types.go
                   to remove/update
                 type: string
+              backupSize:
+                type: string
+              image:
+                type: string
+              password:
+                type: string
+              port:
+                format: int32
+                type: integer
+              rootpwd:
+                type: string
+              schedule:
+                type: string
+              username:
+                type: string
+            required:
+            - backupPath
+            - backupSize
+            - image
+            - password
+            - port
+            - rootpwd
+            - username
             type: object
           status:
             description: MariaDBBackupStatus defines the observed state of MariaDBBackup
+            properties:
+              backupStatus:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+            required:
+            - backupStatus
             type: object
         type: object
     served: true
