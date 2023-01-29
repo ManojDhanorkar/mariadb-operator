@@ -174,6 +174,17 @@ type MariaDBReconciler struct {
 //+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=services,verbs=get;list;watch;create;update;patch;delete
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&mariadbv1alpha1.MariaDB{}).
+		Owns(&appsv1.Deployment{}).
+		Complete(r)
+}
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -246,13 +257,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Everything went fine, don't requeue
 	return ctrl.Result{}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&mariadbv1alpha1.MariaDB{}).
-		Complete(r)
 }
 
 // ensuredep
