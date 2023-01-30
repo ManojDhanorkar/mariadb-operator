@@ -20,6 +20,19 @@ rules:
 - apiGroups:
   - '*'
   resources:
+  - jobs
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - '*'
+  resources:
   - persistentvolumeclaims
   verbs:
   - create
@@ -57,6 +70,19 @@ rules:
   - '*'
   resources:
   - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
   verbs:
   - create
   - delete
