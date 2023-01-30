@@ -29,13 +29,16 @@ type MariaDBBackupSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of MariaDBBackup. Edit mariadbbackup_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	BackupPath string `json:"backupPath"`
+	BackupSize string `json:"backupSize"`
+	Schedule   string `json:"schedule,omitempty"`
 }
 
 // MariaDBBackupStatus defines the observed state of MariaDBBackup
 type MariaDBBackupStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	BackupStatus string `json:"backupStatus"`
 }
 
 //+kubebuilder:object:root=true
