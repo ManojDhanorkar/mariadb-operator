@@ -43,13 +43,13 @@ var volLog = logf.Log.WithName("resource_volumes")
 // var log = ctrllog.FromContext(ctx)
 
 const mariadbPort = 80
-const pvStorageName = "mariadb-pv-storage"
-const pvClaimName = "mariadb-pv-claim"
+const pvStorageName = "mariadb-sample-pv-storage"
+const pvClaimName = "mariadb-sample-pv-claim"
 
 func NewMariaDbPVC(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolumeClaim {
 	volLog.Info("Creating new PVC for MariaDB")
 	labels := MariaDBLabels(v, "mariadb")
-	storageClassName := "manual"
+	storageClassName := "standard"
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetMariadbVolumeClaimName(v),
@@ -97,7 +97,7 @@ func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.Pe
 			Labels: labels,
 		},
 		Spec: corev1.PersistentVolumeSpec{
-			StorageClassName: "manual",
+			StorageClassName: "standard",
 			Capacity: corev1.ResourceList{
 				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(v.Spec.DataStorageSize),
 			},
@@ -177,6 +177,8 @@ type MariaDBReconciler struct {
 //+kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=*,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=*,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=persistentvolumes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {

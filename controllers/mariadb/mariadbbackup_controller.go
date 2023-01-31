@@ -1,11 +1,10 @@
 /*
 Copyright 2023.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +12,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package mariadb
 
 import (
@@ -21,12 +19,11 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/ManojDhanorkar/mariadb-operator/apis/mariadb/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,13 +34,18 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const pvStorageName = "mariadb-bkp-pv-storage"
+const pvStorageName1 = "mariadb-sample-bkp-pv-storage"
 const dbBakupServicePort = 3306
 const dbBakupServiceTargetPort = 3306
 
-var logger = logf.Log.WithName("controller_backup")
-var rfLog = logf.Log.WithName("resource_fetch")
-var volLog = logf.Log.WithName("resource_volumes")
+var defaultBackupConfig = NewDefaultBackupConfig()
+
+const (
+	schedule   = "* * * * 1-5"
+	backupPath = "/mnt/backup"
+)
+
+var logger1 = logf.Log.WithName("controller_backup")
 
 // MariaDBBackupReconciler reconciles a MariaDBBackup object
 type MariaDBBackupReconciler struct {
@@ -55,10 +57,14 @@ type MariaDBBackupReconciler struct {
 	bkpPVC    *corev1.PersistentVolumeClaim
 }
 
-//+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups/finalizers,verbs=update
-//+kubebuilder:rbac:groups=batch,resources=cronjobs;jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=mariadb.xyzcompany.com,resources=mariadbbackups/finalizers,verbs=update
+// +kubebuilder:rbac:groups=batch,resources=cronjobs;jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=pods;jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=persistentvolumes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=*,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -71,8 +77,7 @@ type MariaDBBackupReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *MariaDBBackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//_ = log.FromContext(ctx)
-	reqLogger := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
-	reqLogger.Info("Reconciling Backup")
+	logger1.Info("Reconciling Backup")
 	//mariaDBBackup := &mariadbv1alpha1.MariaDBBackup{}
 	//bkp := &mariadbv1alpha1.MariaDBBackup{}
 	bkp, err := FetchBackupCR(req.Name, req.Namespace, r.Client)
@@ -81,30 +86,26 @@ func (r *MariaDBBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			logger.Info("Backup resource not found. Ignoring since object must be deleted.")
+			logger1.Info("Backup resource not found. Ignoring since object must be deleted.")
 			return ctrl.Result{}, nil
 		}
 		// TODO(user): your logic here
-
-		logger.Error(err, "Failed to get Backup.")
+		logger1.Error(err, "Failed to get Backup.")
 		return ctrl.Result{}, err
 	}
-
 	// Add const values for mandatory specs
-	logger.Info("Adding backup mandatory specs")
+	logger1.Info("Adding backup mandatory specs")
 	AddBackupMandatorySpecs(bkp)
-
 	// Create mandatory objects for the Backup
 	if err := r.createResources(bkp, req); err != nil {
-		logger.Error(err, "Failed to create and update the secondary resource required for the Backup CR")
+		logger1.Error(err, "Failed to create and update the secondary resource required for the Backup CR")
 		return ctrl.Result{}, err
 	}
-
-	logger.Info("Stop Reconciling Backup ...")
+	logger1.Info("Stop Reconciling Backup ...")
 	return ctrl.Result{}, nil
 }
 func FetchCronJob(name, namespace string, Client client.Client) (*batchv1.CronJob, error) {
-	rfLog.Info("Fetching CronJob ...")
+	logger1.Info("Fetching CronJob ...")
 	cronJob := &batchv1.CronJob{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cronJob)
 	return cronJob, err
@@ -117,10 +118,8 @@ func (r *MariaDBBackupReconciler) createCronJob(bkp *mariadbv1alpha1.MariaDBBack
 	}
 	return nil
 }
-func FetchPVCByNameAndNS(name, namespace string, Client client.Client) (*corev1.PersistentVolumeClaim, error) {
-	reqLogger := rfLog.WithValues("PVC Name", name, "PVC Namespace", namespace)
-	reqLogger.Info("Fetching Persistent Volume Claim")
-
+func FetchPVCByNameAndNS1(name, namespace string, Client client.Client) (*corev1.PersistentVolumeClaim, error) {
+	logger1.Info("Fetching Persistent Volume Claim")
 	pvc := &corev1.PersistentVolumeClaim{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, pvc)
 	return pvc, err
@@ -128,11 +127,10 @@ func FetchPVCByNameAndNS(name, namespace string, Client client.Client) (*corev1.
 func GetMariadbBkpVolumeClaimName(bkp *mariadbv1alpha1.MariaDBBackup) string {
 	return bkp.Name + "-pv-claim"
 }
-
 func NewDbBackupPVC(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.MariaDB, Scheme *runtime.Scheme) *corev1.PersistentVolumeClaim {
-	volLog.Info("Creating new PVC for Database Backup")
+	logger1.Info("Creating new PVC for Database Backup")
 	labels := MariaDBBackupLabels(bkp, "mariadb-backup")
-	storageClassName := "manual"
+	storageClassName := "standard"
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetMariadbBkpVolumeClaimName(bkp),
@@ -150,8 +148,7 @@ func NewDbBackupPVC(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.Maria
 			VolumeName: GetMariadbBkpVolumeName(bkp),
 		},
 	}
-
-	volLog.Info("PVC created for Database Backup ")
+	logger1.Info("PVC created for Database Backup ")
 	ctrl.SetControllerReference(bkp, pvc, Scheme)
 	return pvc
 }
@@ -159,7 +156,7 @@ func NewDbBackupPVC(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.Maria
 // createBackupPVC - Check if the PVC is created, if not create one
 func (r *MariaDBBackupReconciler) createBackupPVC(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) error {
 	pvcName := GetMariadbBkpVolumeClaimName(bkp)
-	pvc, err := FetchPVCByNameAndNS(pvcName, bkp.Namespace, r.Client)
+	pvc, err := FetchPVCByNameAndNS1(pvcName, bkp.Namespace, r.Client)
 	if err != nil || pvc == nil {
 		pvc := NewDbBackupPVC(bkp, db, r.Scheme)
 		if err := r.Client.Create(context.TODO(), pvc); err != nil {
@@ -169,18 +166,17 @@ func (r *MariaDBBackupReconciler) createBackupPVC(bkp *mariadbv1alpha1.MariaDBBa
 	r.bkpPVC = pvc
 	return nil
 }
-
 func NewDbBackupPV(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.MariaDB, Scheme *runtime.Scheme) *corev1.PersistentVolume {
-	logger.Info("Creating new PV for Database Backup")
+	logger1.Info("Creating new PV for Database Backup")
 	labels := MariaDBBackupLabels(bkp, "mariadb-backup")
 	pv := &corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: GetMariadbBkpVolumeName(bkp),
-			// Namespace: v.Namespace,
-			Labels: labels,
+			Name:      GetMariadbBkpVolumeName(bkp),
+			Namespace: v.Namespace,
+			Labels:    labels,
 		},
 		Spec: corev1.PersistentVolumeSpec{
-			StorageClassName: "manual",
+			StorageClassName: "standard",
 			Capacity: corev1.ResourceList{
 				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(bkp.Spec.BackupSize),
 			},
@@ -191,15 +187,12 @@ func NewDbBackupPV(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.MariaD
 			},
 		},
 	}
-
-	logger.Info("PV created for Database Backup ")
+	logger1.Info("PV created for Database Backup ")
 	ctrl.SetControllerReference(bkp, pv, Scheme)
 	return pv
 }
-func FetchPVByName(name string, Client client.Client) (*corev1.PersistentVolume, error) {
-	reqLogger := rfLog.WithValues("PV Name", name)
-	reqLogger.Info("Fetching Persistent Volume")
-
+func FetchPVByName1(name string, Client client.Client) (*corev1.PersistentVolume, error) {
+	logger1.Info("Fetching Persistent Volume")
 	pv := &corev1.PersistentVolume{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name}, pv)
 	return pv, err
@@ -211,7 +204,7 @@ func GetMariadbBkpVolumeName(bkp *mariadbv1alpha1.MariaDBBackup) string {
 }
 func (r *MariaDBBackupReconciler) createBackupPV(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) error {
 	pvName := GetMariadbBkpVolumeName(bkp)
-	pv, err := FetchPVByName(pvName, r.Client)
+	pv, err := FetchPVByName1(pvName, r.Client)
 	if err != nil || pv == nil {
 		pv := NewDbBackupPV(bkp, db, r.Scheme)
 		if err := r.Client.Create(context.TODO(), pv); err != nil {
@@ -224,34 +217,16 @@ func (r *MariaDBBackupReconciler) createBackupPV(bkp *mariadbv1alpha1.MariaDBBac
 
 // buildDatabaseCreteria returns client.ListOptions required to fetch the secondary resource created by
 func buildDatabaseBackupCriteria(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) *client.ListOptions {
-	labelSelector := labels.SelectorFromSet(MariaDBLabels(db, "mariadb-backup"))
+	labelSelector := labels.SelectorFromSet(MariaDBLabels1(db, "mariadb-backup"))
 	listOps := &client.ListOptions{Namespace: bkp.Namespace, LabelSelector: labelSelector}
 	return listOps
 }
-func FetchDatabaseBackupService(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Client client.Client) (*corev1.Service, error) {
-	rfLog.Info("Fetching Database Backup Service ...")
-	listOps := buildDatabaseBackupCriteria(bkp, db)
-	bkpServiceList := &corev1.ServiceList{}
-	err := Client.List(context.TODO(), bkpServiceList, listOps)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(bkpServiceList.Items) == 0 {
-		return nil, err
-	}
-
-	srv := bkpServiceList.Items[0]
-	return &srv, nil
-}
-
 func mariadbBkpServiceName(bkp *mariadbv1alpha1.MariaDBBackup) string {
 	return bkp.Name + "-service"
 }
 func NewDbBackupService(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.Service {
-	labels := MariaDBLabels(v, "mariadb-backup")
-	selectorLabels := MariaDBLabels(v, "mariadb")
-
+	labels := MariaDBLabels1(v, "mariadb-backup")
+	selectorLabels := MariaDBLabels1(v, "mariadb")
 	s := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mariadbBkpServiceName(bkp),
@@ -268,9 +243,22 @@ func NewDbBackupService(bkp *mariadbv1alpha1.MariaDBBackup, v *mariadbv1alpha1.M
 			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
-
 	ctrl.SetControllerReference(v, s, scheme)
 	return s
+}
+func FetchDatabaseBackupService(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Client client.Client) (*corev1.Service, error) {
+	logger1.Info("Fetching Database Backup Service ...")
+	listOps := buildDatabaseBackupCriteria(bkp, db)
+	bkpServiceList := &corev1.ServiceList{}
+	err := Client.List(context.TODO(), bkpServiceList, listOps)
+	if err != nil {
+		return nil, err
+	}
+	if len(bkpServiceList.Items) == 0 {
+		return nil, err
+	}
+	srv := bkpServiceList.Items[0]
+	return &srv, nil
 }
 func (r *MariaDBBackupReconciler) getDatabaseBackupService(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) error {
 	dbService, err := FetchDatabaseBackupService(bkp, db, r.Client)
@@ -282,24 +270,20 @@ func (r *MariaDBBackupReconciler) getDatabaseBackupService(bkp *mariadbv1alpha1.
 	//r.dbService = dbService
 	return nil
 }
-
 func FetchDatabaseService(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Client client.Client) (*corev1.Service, error) {
-	rfLog.Info("Fetching Database Service ...")
+	logger1.Info("Fetching Database Service ...")
 	listOps := buildDatabaseCriteria(bkp, db)
 	dbServiceList := &corev1.ServiceList{}
 	err := Client.List(context.TODO(), dbServiceList, listOps)
 	if err != nil {
 		return nil, err
 	}
-
 	if len(dbServiceList.Items) == 0 {
 		return nil, err
 	}
-
 	srv := dbServiceList.Items[0]
 	return &srv, nil
 }
-
 func (r *MariaDBBackupReconciler) getDatabaseService(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) error {
 	dbService, err := FetchDatabaseService(bkp, db, r.Client)
 	if err != nil || dbService == nil {
@@ -313,27 +297,24 @@ func (r *MariaDBBackupReconciler) getDatabaseService(bkp *mariadbv1alpha1.MariaD
 
 // buildDatabaseCreteria returns client.ListOptions required to fetch the secondary resource created by
 func buildDatabaseCriteria(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) *client.ListOptions {
-	labelSelector := labels.SelectorFromSet(MariaDBLabels(db, "mariadb"))
+	labelSelector := labels.SelectorFromSet(MariaDBLabels1(db, "mariadb"))
 	listOps := &client.ListOptions{Namespace: db.Namespace, LabelSelector: labelSelector}
 	return listOps
 }
 func FetchDatabasePod(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Client client.Client) (*corev1.Pod, error) {
-	logger.Info("Fetching Database Pod ...")
+	logger1.Info("Fetching Database Pod ...")
 	listOps := buildDatabaseCriteria(bkp, db)
 	dbPodList := &corev1.PodList{}
 	err := Client.List(context.TODO(), dbPodList, listOps)
 	if err != nil {
 		return nil, err
 	}
-
 	if len(dbPodList.Items) == 0 {
 		return nil, err
 	}
-
 	pod := dbPodList.Items[0]
 	return &pod, nil
 }
-
 func (r *MariaDBBackupReconciler) getDatabasePod(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB) error {
 	dbPod, err := FetchDatabasePod(bkp, db, r.Client)
 	if err != nil || dbPod == nil {
@@ -344,9 +325,8 @@ func (r *MariaDBBackupReconciler) getDatabasePod(bkp *mariadbv1alpha1.MariaDBBac
 	r.dbPod = dbPod
 	return nil
 }
-
 func FetchDatabaseCR(name, namespace string, Client client.Client) (*mariadbv1alpha1.MariaDB, error) {
-	rfLog.Info("Fetching Database CR ...")
+	logger1.Info("Fetching Database CR ...")
 	db := &mariadbv1alpha1.MariaDB{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, db)
 	return db, err
@@ -355,23 +335,30 @@ func FetchDatabaseCR(name, namespace string, Client client.Client) (*mariadbv1al
 // AddBackupMandatorySpecs will add the specs which are mandatory for Backup CR in the case them
 // not be applied
 func AddBackupMandatorySpecs(bkp *mariadbv1alpha1.MariaDBBackup) {
-
 	/*
-	 Backup Container
+	   Backup Container
 	*/
-
 	if bkp.Spec.Schedule == "" {
-		bkp.Spec.Schedule = bkp.Spec.Schedule
+		bkp.Spec.Schedule = defaultBackupConfig.Schedule
 	}
-
 	if bkp.Spec.BackupPath == "" {
-		bkp.Spec.BackupPath = bkp.Spec.BackupPath
+		bkp.Spec.BackupPath = defaultBackupConfig.BackupPath
 	}
-
 }
 
+type DefaultBackupConfig struct {
+	Schedule   string `json:"schedule"`
+	BackupPath string `json:"backupPath"`
+}
+
+func NewDefaultBackupConfig() *DefaultBackupConfig {
+	return &DefaultBackupConfig{
+		Schedule:   schedule,
+		BackupPath: backupPath,
+	}
+}
 func FetchBackupCR(name, namespace string, Client client.Client) (*mariadbv1alpha1.MariaDBBackup, error) {
-	rfLog.Info("Fetching Backup CR ...")
+	logger1.Info("Fetching Backup CR ...")
 	bkp := &mariadbv1alpha1.MariaDBBackup{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bkp)
 	return bkp, err
@@ -387,10 +374,8 @@ func (r *MariaDBBackupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // cron job
 func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Scheme *runtime.Scheme) *batchv1.CronJob {
-
 	bkpPVClaimName := GetMariadbBkpVolumeClaimName(bkp)
 	dbPort := db.Spec.Port
-
 	hostname := mariadbBkpServiceName(bkp) + "." + bkp.Namespace
 	// currentTime := time.Now()
 	//formatedDate := currentTime.Format("2006-01-02_15:04:05")
@@ -400,9 +385,8 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 		"mysqldump -P " + fmt.Sprint(dbPort) + " -h '" + hostname +
 		"' --lock-tables --all-databases > " + filename +
 		"&& echo 'Completed DB Backup'"
-
 	cron := &batchv1.CronJob{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      bkp.Name,
 			Namespace: bkp.Namespace,
 			Labels:    MariaDBBackupLabels(bkp, "mariaDBBackup"),
@@ -416,7 +400,7 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 							ServiceAccountName: "mariadb-operator",
 							Volumes: []corev1.Volume{
 								{
-									Name: pvStorageName,
+									Name: pvStorageName1,
 									VolumeSource: corev1.VolumeSource{
 										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 											ClaimName: bkpPVClaimName,
@@ -432,7 +416,7 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 									Args:    []string{backupCommand},
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:      pvStorageName,
+											Name:      pvStorageName1,
 											MountPath: "/var/lib/mysql",
 										},
 									},
@@ -459,93 +443,83 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 	return cron
 }
 
-// 							RestartPolicy: "OnFailure",
-// 					  },
-// 				  },
-// 			  },
-// 		},
-// 	},
-// },
-// 	}
-// 	// Set awsVMScheduler instance as the owner and controller
-// 	ctrl.SetControllerReference(bkp, cron, r.Scheme)
-// 	return cron
-// }
-
+//	                         RestartPolicy: "OnFailure",
+//	                   },
+//	               },
+//	           },
+//	     },
+//	 },
+//	},
+//
+//	 }
+//	 // Set awsVMScheduler instance as the owner and controller
+//	 ctrl.SetControllerReference(bkp, cron, r.Scheme)
+//	 return cron
+//	}
+//
 // // createResources will create and update the  resource which are required
-// func (r *AWSVMSchedulerReconciler) createResources(awsVMScheduler *awsv1.AWSVMScheduler, request ctrl.Request) error {
-
-// 	log := r.Log.WithValues("AWSVMScheduler", request.NamespacedName)
-// 	log.Info("Creating   resources ...")
-
-// 	// Check if the cronJob is created, if not create one
-// 	if err := r.createCronJob(awsVMScheduler); err != nil {
-// 		log.Error(err, "Failed to create the CronJob")
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
+//
+//	func (r *AWSVMSchedulerReconciler) createResources(awsVMScheduler *awsv1.AWSVMScheduler, request ctrl.Request) error {
+//	 log := r.Log.WithValues("AWSVMScheduler", request.NamespacedName)
+//	 log.Info("Creating   resources ...")
+//	 // Check if the cronJob is created, if not create one
+//	 if err := r.createCronJob(awsVMScheduler); err != nil {
+//	     log.Error(err, "Failed to create the CronJob")
+//	     return err
+//	 }
+//	 return nil
+//	}
+//
 // // Check if the cronJob is created, if not create one
 //
 //	func (r *AWSVMSchedulerReconciler) createCronJob(awsVMScheduler *awsv1.AWSVMScheduler) error {
-//		if _, err := services.FetchCronJob(awsVMScheduler.Name, awsVMScheduler.Namespace); err != nil {
-//			if err := r.client.Create(context.TODO(), resources.NewAWSVMSchedulerCronJob(awsVMScheduler)); err != nil {
-//				return err
-//			}
-//		}
-//		return nil
+//	    if _, err := services.FetchCronJob(awsVMScheduler.Name, awsVMScheduler.Namespace); err != nil {
+//	        if err := r.client.Create(context.TODO(), resources.NewAWSVMSchedulerCronJob(awsVMScheduler)); err != nil {
+//	            return err
+//	        }
+//	    }
+//	    return nil
 //	}
 func (r *MariaDBBackupReconciler) createResources(bkp *mariadbv1alpha1.MariaDBBackup, req ctrl.Request) error {
-	logger.Info("Creating secondary Backup resources ...")
-
+	logger1.Info("Creating secondary Backup resources ...")
 	// Check if the database instance was created
-	db, err := FetchDatabaseCR("mariadb", req.Namespace, r.Client)
+	db, err := FetchDatabaseCR("mariadb-sample", req.Namespace, r.Client)
 	if err != nil {
-		logger.Error(err, "Failed to fetch Database instance/cr")
+		logger1.Error(err, "Failed to fetch Database instance/cr")
 		return err
 	}
-
 	// Get the Database Pod created by the Database Controller
 	if err := r.getDatabasePod(bkp, db); err != nil {
-		logger.Error(err, "Failed to get a Database pod")
+		logger1.Error(err, "Failed to get a Database pod")
 		return err
 	}
-
 	// Get the Database Service created by the Database Controller
 	if err := r.getDatabaseService(bkp, db); err != nil {
-		logger.Error(err, "Failed to get a Database service")
+		logger1.Error(err, "Failed to get a Database service")
 		return err
 	}
-
 	// Get the Database Backup Service created by the Backup Controller
 	if err := r.getDatabaseBackupService(bkp, db); err != nil {
-		logger.Error(err, "Failed to get a Database Backup service")
+		logger1.Error(err, "Failed to get a Database Backup service")
 		return err
 	}
-
 	// Check if the PV is created, if not create one
 	if err := r.createBackupPV(bkp, db); err != nil {
-		logger.Error(err, "Failed to create the Persistent Volume for MariaDB Backup")
+		logger1.Error(err, "Failed to create the Persistent Volume for MariaDB Backup")
 		return err
 	}
-
 	// Check if the PVC is created, if not create one
 	if err := r.createBackupPVC(bkp, db); err != nil {
-		logger.Error(err, "Failed to create the Persistent Volume Claim for MariaDB Backup")
+		logger1.Error(err, "Failed to create the Persistent Volume Claim for MariaDB Backup")
 		return err
 	}
-
 	// Check if the cronJob is created, if not create one
 	if err := r.createCronJob(bkp, db); err != nil {
-		logger.Error(err, "Failed to create the CronJob")
+		logger1.Error(err, "Failed to create the CronJob")
 		return err
 	}
-
 	return nil
 }
-
 func MariaDBBackupLabels(v *mariadbv1alpha1.MariaDBBackup, tier string) map[string]string {
 	return map[string]string{
 		"app":              "MariaDBBackup",
@@ -553,7 +527,7 @@ func MariaDBBackupLabels(v *mariadbv1alpha1.MariaDBBackup, tier string) map[stri
 		"tier":             tier,
 	}
 }
-func MariaDBLabels(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
+func MariaDBLabels1(v *mariadbv1alpha1.MariaDB, tier string) map[string]string {
 	return map[string]string{
 		"app":        "MariaDB",
 		"MariaDB_cr": v.Name,
