@@ -18,7 +18,7 @@ spec:
   # New Database name
   database: test-db
   # Database additional user details (base64 encoded)
-  username: db-user 3
+  username: db-user
   password: db-user 
 
   # Image name with version

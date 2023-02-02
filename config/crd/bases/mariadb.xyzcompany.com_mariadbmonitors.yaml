@@ -35,13 +35,32 @@ spec:
           spec:
             description: MariaDBMonitorSpec defines the desired state of MariaDBMonitor
             properties:
-              foo:
+              dataSourceName:
+                description: Database source name
+                type: string
+              image:
+                description: Image name with version
+                type: string
+              size:
                 description: Foo is an example field of MariaDBMonitor. Edit mariadbmonitor_types.go
                   to remove/update
-                type: string
+                format: int32
+                type: integer
+            required:
+            - dataSourceName
+            - image
+            - size
             type: object
           status:
             description: MariaDBMonitorStatus defines the observed state of MariaDBMonitor
+            properties:
+              monitorStatus:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+            required:
+            - monitorStatus
             type: object
         type: object
     served: true

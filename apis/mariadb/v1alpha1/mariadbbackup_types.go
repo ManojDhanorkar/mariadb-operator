@@ -43,6 +43,7 @@ type MariaDBBackupStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:path=mariadbbackups,scope=Namespaced
 
 // MariaDBBackup is the Schema for the mariadbbackups API
 type MariaDBBackup struct {
