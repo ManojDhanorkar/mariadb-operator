@@ -19,8 +19,8 @@ package mariadb
 import (
 	"context"
 
-	coreosv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	grafanav1alpha1 "github.com/integr8ly/grafana-operator/pkg/apis/integreatly/v1alpha1"
+	grafanav1alpha1 "github.com/grafana-operator/grafana-operator/v4/api/integreatly/v1alpha1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -211,7 +211,7 @@ func (r *MariaDBMonitorReconciler) monitorGrafanaDashboard(v *mariadbv1alpha1.Ma
 		},
 		Spec: grafanav1alpha1.GrafanaDashboardSpec{
 			Json: DashboardJSON,
-			Name: "mariadb.json",
+			// Name: "mariadb.json",
 			Plugins: []grafanav1alpha1.GrafanaPlugin{
 				{
 					Name:    "grafana-piechart-panel",
@@ -262,19 +262,19 @@ func monitorServiceMonitorName(v *mariadbv1alpha1.MariaDBMonitor) string {
 	return v.Name + "-serviceMonitor"
 }
 
-func (r *MariaDBMonitorReconciler) monitorServiceMonitor(v *mariadbv1alpha1.MariaDBMonitor) *coreosv1.ServiceMonitor {
+func (r *MariaDBMonitorReconciler) monitorServiceMonitor(v *mariadbv1alpha1.MariaDBMonitor) *monitoringv1.ServiceMonitor {
 	labels := ServiceMonitorLabels(v, monitorApp)
 
-	s := &coreosv1.ServiceMonitor{
+	s := &monitoringv1.ServiceMonitor{
 
 		ObjectMeta: v12.ObjectMeta{
 			Name:      monitorServiceMonitorName(v),
 			Namespace: v.Namespace,
 			Labels:    labels,
 		},
-		Spec: coreosv1.ServiceMonitorSpec{
+		Spec: monitoringv1.ServiceMonitorSpec{
 
-			Endpoints: []coreosv1.Endpoint{{
+			Endpoints: []monitoringv1.Endpoint{{
 				Path: "/metrics",
 				Port: monitorPortName,
 			}},
@@ -292,9 +292,9 @@ func (r *MariaDBMonitorReconciler) monitorServiceMonitor(v *mariadbv1alpha1.Mari
 
 func (r *MariaDBMonitorReconciler) ensureServiceMonitor(req ctrl.Request,
 	instance *mariadbv1alpha1.MariaDBMonitor,
-	s *coreosv1.ServiceMonitor,
+	s *monitoringv1.ServiceMonitor,
 ) (*ctrl.Result, error) {
-	found := &coreosv1.ServiceMonitor{}
+	found := &monitoringv1.ServiceMonitor{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{
 		Name:      s.Name,
 		Namespace: instance.Namespace,
@@ -528,7 +528,7 @@ type MariaDBMonitorReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *MariaDBMonitorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logger2.FromContext(ctx)
+	// _ = logger2.FromContext(ctx)
 
 	logger2.Info("Reconciling Monitor")
 
