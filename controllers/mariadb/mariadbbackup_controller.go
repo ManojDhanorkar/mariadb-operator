@@ -429,7 +429,7 @@ func (r *MariaDBBackupReconciler) createResources(bkp *mariadbv1alpha1.MariaDBBa
 }
 
 const (
-	schedule   = "0 0 * * *"
+	schedule   = "* * * * 1-5"
 	backupPath = "/mnt/backup"
 )
 
