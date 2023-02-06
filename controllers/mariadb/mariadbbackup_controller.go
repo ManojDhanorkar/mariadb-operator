@@ -51,7 +51,7 @@ const pvStorageName1 = "mariadb-bkp-pv-storage"
 func NewBackupCronJob(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.MariaDB, Scheme *runtime.Scheme) *batchv1.CronJob {
 
 	bkpPVClaimName := GetMariadbBkpVolumeClaimName(bkp)
-	dbPort := db.Spec.Port
+	// dbPort := db.Spec.Port
 
 	hostname := mariadbBkpServiceName(bkp) + "." + bkp.Namespace
 	// currentTime := time.Now()
@@ -59,9 +59,9 @@ func NewBackupCronJob(bkp *mariadbv1alpha1.MariaDBBackup, db *mariadbv1alpha1.Ma
 	// filename := "/var/lib/mysql/backup/backup_" + formatedDate + ".sql"
 	filename := "/var/lib/mysql/backup_`date +%F_%T`.sql"
 	backupCommand := "echo 'Starting DB Backup'  &&  " +
-		"mysqldump -P " + fmt.Sprint(dbPort) + " -h '" + hostname +
-		"' --lock-tables --all-databases > " + filename +
-		"&& echo 'Completed DB Backup'"
+		"mysqldump " + " -h '" + hostname +
+		"' -A --single-transaction > " + filename +
+		" && echo 'Completed DB Backup'"
 
 	cron := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -429,7 +429,7 @@ func (r *MariaDBBackupReconciler) createResources(bkp *mariadbv1alpha1.MariaDBBa
 }
 
 const (
-	schedule   = "0 0 * * *"
+	schedule   = "*/1 * * * 1-5"
 	backupPath = "/mnt/backup"
 )
 

@@ -18,7 +18,7 @@ spec:
 
   # Make approprite changes
 
-  dataSourceName: "root:password@(192.168.99.127:30685)/test-db"
+  dataSourceName: "root:password@(192.168.49.2:30685)/test-db"
 
   # Image name with version
 

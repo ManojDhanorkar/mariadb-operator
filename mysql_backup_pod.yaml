@@ -1,0 +1,38 @@
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: mysql-backup-pod
+# spec:
+#   containers:
+#   - name: mysql-backup
+#     image: mariadb/server:10.3
+#     env:
+#     - name: MYSQL_ROOT_PASSWORD
+#       value: password
+#     command: ["sh", "-c", "mysqldump -u root -p -P 30685 -h mariadbbackup-sample-service.mariadb-operator-bundle --all-databases > /var/lib/mysql/backup1.sql"]
+#     volumeMounts:
+#     - name: backup-storage
+#       mountPath: /var/lib/mysql
+#   volumes:
+#   - name: backup-storage
+#     emptyDir: {}
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-backup-pod
+spec:
+  containers:
+  - name: mysql-backup
+    image: mysql:5.7
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: password
+    ports:
+    - containerPort: 3306
+    volumeMounts:
+    - name: mysql-backup-storage
+      mountPath: /var/lib/mysql
+  volumes:
+  - name: mysql-backup-storage
+
