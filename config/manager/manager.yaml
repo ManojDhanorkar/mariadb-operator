@@ -70,7 +70,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: quay.io/manoj_dhanorkar/mariadb-operator:v1.1
+        image: quay.io/manoj_dhanorkar/mariadb-operator:v1.0
         imagePullPolicy: Always
         name: manager
         securityContext:

@@ -1,0 +1,440 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "mariadb.xyzcompany.com/v1alpha1",
+          "kind": "MariaDB",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "mariadb-operator",
+              "app.kubernetes.io/instance": "mariadb-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "mariadb",
+              "app.kubernetes.io/part-of": "mariadb-operator"
+            },
+            "name": "mariadb-sample"
+          },
+          "spec": {
+            "dataStoragePath": "/mnt/data",
+            "dataStorageSize": "1Gi",
+            "database": "test-db",
+            "image": "mariadb/server:10.3",
+            "password": "db-user",
+            "port": 30685,
+            "rootpwd": "password",
+            "size": 1,
+            "username": "db-user"
+          }
+        },
+        {
+          "apiVersion": "mariadb.xyzcompany.com/v1alpha1",
+          "kind": "MariaDBBackup",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "mariadb-operator",
+              "app.kubernetes.io/instance": "mariadbbackup-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "mariadbbackup",
+              "app.kubernetes.io/part-of": "mariadb-operator"
+            },
+            "name": "mariadbbackup-sample"
+          },
+          "spec": {
+            "backupPath": "/mnt/backup",
+            "backupSize": "1Gi",
+            "schedule": "*/5 * * * 1-5"
+          }
+        },
+        {
+          "apiVersion": "mariadb.xyzcompany.com/v1alpha1",
+          "kind": "MariaDBMonitor",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "mariadb-operator",
+              "app.kubernetes.io/instance": "mariadbmonitor-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "mariadbmonitor",
+              "app.kubernetes.io/part-of": "mariadb-operator"
+            },
+            "name": "mariadbmonitor-sample"
+          },
+          "spec": {
+            "dataSourceName": "root:password@(192.168.49.2:30685)/test-db",
+            "image": "prom/mysqld-exporter",
+            "size": 1
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2023-02-03T11:08:10Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.26.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: mariadb-operator.v1.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: MariaDBBackup is the Schema for the mariadbbackups API
+      displayName: Maria DBBackup
+      kind: MariaDBBackup
+      name: mariadbbackups.mariadb.xyzcompany.com
+      version: v1alpha1
+    - description: MariaDBMonitor is the Schema for the mariadbmonitors API
+      displayName: Maria DBMonitor
+      kind: MariaDBMonitor
+      name: mariadbmonitors.mariadb.xyzcompany.com
+      version: v1alpha1
+    - description: MariaDB is the Schema for the mariadbs API
+      displayName: Maria DB
+      kind: MariaDB
+      name: mariadbs.mariadb.xyzcompany.com
+      version: v1alpha1
+  description: mariadb-operator
+  displayName: mariadb-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - jobs
+          - pods
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - persistentvolumes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - cronjobs
+          - jobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbbackups
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbbackups/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbbackups/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbmonitors
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbmonitors/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbmonitors/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbs/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - mariadb.xyzcompany.com
+          resources:
+          - mariadbs/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: mariadb-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: mariadb-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: mariadb-operator
+          control-plane: controller-manager
+        name: mariadb-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                image: quay.io/manoj_dhanorkar/mariadb-operator:v1.1
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: mariadb-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: mariadb-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - mariadb
+  - go
+  links:
+  - name: Mariadb Operator
+    url: https://mariadb-operator.domain
+  maintainers:
+  - email: abhijeetdandekar333@gmail.com'
+    name: abhijeet
+  - email: sonaldeshmukh2030@gmail.com
+    name: '''sonal'
+  maturity: alpha
+  provider:
+    name: abhijeet,sonal
+  version: 1.0.0
