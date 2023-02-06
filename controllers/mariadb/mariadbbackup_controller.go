@@ -37,8 +37,6 @@ const pvStorageName1 = "mariadb-sample-bkp-pv-storage"
 const dbBakupServicePort = 3306
 const dbBakupServiceTargetPort = 3306
 
-
-
 var logger1 = logf.Log.WithName("controller_backup")
 
 // MariaDBBackupReconciler reconciles a MariaDBBackup object
@@ -88,8 +86,8 @@ func (r *MariaDBBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 	// Add const values for mandatory specs
-	logger1.Info("Adding backup mandatory specs")
-	AddBackupMandatorySpecs(bkp)
+	// logger1.Info("Adding backup mandatory specs")
+	// AddBackupMandatorySpecs(bkp)
 	// Create mandatory objects for the Backup
 	if err := r.createResources(bkp, req); err != nil {
 		logger1.Error(err, "Failed to create and update the secondary resource required for the Backup CR")
@@ -326,39 +324,38 @@ func FetchDatabaseCR(name, namespace string, Client client.Client) (*mariadbv1al
 	return db, err
 }
 
+// var defaultBackupConfig = NewDefaultBackupConfig()
 
-var defaultBackupConfig = NewDefaultBackupConfig()
+// const (
+// 	schedule   = "*` * * * 1-5"
+// 	backupPath = "/mnt/backup"
+// )
 
-const (
-	schedule   = "*` * * * 1-5"
-	backupPath = "/mnt/backup"
-)
+// // AddBackupMandatorySpecs will add the specs which are mandatory for Backup CR in the case them
+// // not be applied
+// func AddBackupMandatorySpecs(bkp *mariadbv1alpha1.MariaDBBackup) {
+// 	/*
+// 	   Backup Container
+// 	*/
+// 	if bkp.Spec.Schedule == "" {
+// 		bkp.Spec.Schedule = defaultBackupConfig.Schedule
+// 	}
+// 	if bkp.Spec.BackupPath == "" {
+// 		bkp.Spec.BackupPath = defaultBackupConfig.BackupPath
+// 	}
+// }
 
-// AddBackupMandatorySpecs will add the specs which are mandatory for Backup CR in the case them
-// not be applied
-func AddBackupMandatorySpecs(bkp *mariadbv1alpha1.MariaDBBackup) {
-	/*
-	   Backup Container
-	*/
-	if bkp.Spec.Schedule == "" {
-		bkp.Spec.Schedule = defaultBackupConfig.Schedule
-	}
-	if bkp.Spec.BackupPath == "" {
-		bkp.Spec.BackupPath = defaultBackupConfig.BackupPath
-	}
-}
+// type DefaultBackupConfig struct {
+// 	Schedule   string `json:"schedule"`
+// 	BackupPath string `json:"backupPath"`
+// }
 
-type DefaultBackupConfig struct {
-	Schedule   string `json:"schedule"`
-	BackupPath string `json:"backupPath"`
-}
-
-func NewDefaultBackupConfig() *DefaultBackupConfig {
-	return &DefaultBackupConfig{
-		Schedule:   schedule,
-		BackupPath: backupPath,
-	}
-}
+//	func NewDefaultBackupConfig() *DefaultBackupConfig {
+//		return &DefaultBackupConfig{
+//			Schedule:   schedule,
+//			BackupPath: backupPath,
+//		}
+//	}
 func FetchBackupCR(name, namespace string, Client client.Client) (*mariadbv1alpha1.MariaDBBackup, error) {
 	logger1.Info("Fetching Backup CR ...")
 	bkp := &mariadbv1alpha1.MariaDBBackup{}
@@ -445,43 +442,7 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 	return cron
 }
 
-//	                         RestartPolicy: "OnFailure",
-//	                   },
-//	               },
-//	           },
-//	     },
-//	 },
-//	},
-//
-//	 }
-//	 // Set awsVMScheduler instance as the owner and controller
-//	 ctrl.SetControllerReference(bkp, cron, r.Scheme)
-//	 return cron
-//	}
-//
-// // createResources will create and update the  resource which are required
-//
-//	func (r *AWSVMSchedulerReconciler) createResources(awsVMScheduler *awsv1.AWSVMScheduler, request ctrl.Request) error {
-//	 log := r.Log.WithValues("AWSVMScheduler", request.NamespacedName)
-//	 log.Info("Creating   resources ...")
-//	 // Check if the cronJob is created, if not create one
-//	 if err := r.createCronJob(awsVMScheduler); err != nil {
-//	     log.Error(err, "Failed to create the CronJob")
-//	     return err
-//	 }
-//	 return nil
-//	}
-//
-// // Check if the cronJob is created, if not create one
-//
-//	func (r *AWSVMSchedulerReconciler) createCronJob(awsVMScheduler *awsv1.AWSVMScheduler) error {
-//	    if _, err := services.FetchCronJob(awsVMScheduler.Name, awsVMScheduler.Namespace); err != nil {
-//	        if err := r.client.Create(context.TODO(), resources.NewAWSVMSchedulerCronJob(awsVMScheduler)); err != nil {
-//	            return err
-//	        }
-//	    }
-//	    return nil
-//	}
+
 func (r *MariaDBBackupReconciler) createResources(bkp *mariadbv1alpha1.MariaDBBackup, req ctrl.Request) error {
 	logger1.Info("Creating secondary Backup resources ...")
 	// Check if the database instance was created
