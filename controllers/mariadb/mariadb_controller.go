@@ -34,22 +34,23 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var rfLog = logf.Log.WithName("resource_fetch")
+// var rfLog = logf.Log.WithName("resource_fetch")
 
 var logger = logf.Log.WithName("controller_server")
-var volLog = logf.Log.WithName("resource_volumes")
+
+// var volLog = logf.Log.WithName("resource_volumes")
 
 // var ctx context.Context
 // var log = ctrllog.FromContext(ctx)
 
 const mariadbPort = 80
-const pvStorageName = "mariadb-pv-storage"
-const pvClaimName = "mariadb-pv-claim"
+const pvStorageName = "mariadb-sample-pv-storage"
+const pvClaimName = "mariadb-sample-pv-claim"
 
 func NewMariaDbPVC(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolumeClaim {
-	volLog.Info("Creating new PVC for MariaDB")
+	logger.Info("Creating new PVC for MariaDB")
 	labels := MariaDBLabels(v, "mariadb")
-	storageClassName := "manual"
+	storageClassName := "standard"
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetMariadbVolumeClaimName(v),
@@ -68,15 +69,15 @@ func NewMariaDbPVC(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.P
 		},
 	}
 
-	volLog.Info("PVC created for MariaDB ")
+	logger.Info("PVC created for MariaDB ")
 	ctrl.SetControllerReference(v, pvc, scheme)
 	return pvc
 }
 
 // FetchPVCByNameAndNS search in the cluster for PVC managed by the Backup Controller
 func FetchPVCByNameAndNS(name, namespace string, client client.Client) (*corev1.PersistentVolumeClaim, error) {
-	reqLogger := rfLog.WithValues("PVC Name", name, "PVC Namespace", namespace)
-	reqLogger.Info("Fetching Persistent Volume Claim")
+	// reqLogger := logger.WithValues("PVC Name", name, "PVC Namespace", namespace)
+	logger.Info("Fetching Persistent Volume Claim")
 
 	pvc := &corev1.PersistentVolumeClaim{}
 	err := client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, pvc)
@@ -88,7 +89,7 @@ func GetMariadbVolumeClaimName(v *mariadbv1alpha1.MariaDB) string {
 }
 
 func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.PersistentVolume {
-	volLog.Info("Creating new PV for MariaDB")
+	logger.Info("Creating new PV for MariaDB")
 	labels := MariaDBLabels(v, "mariadb")
 	pv := &corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
@@ -97,7 +98,7 @@ func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.Pe
 			Labels: labels,
 		},
 		Spec: corev1.PersistentVolumeSpec{
-			StorageClassName: "manual",
+			StorageClassName: "standard",
 			Capacity: corev1.ResourceList{
 				corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(v.Spec.DataStorageSize),
 			},
@@ -109,7 +110,7 @@ func NewMariaDbPV(v *mariadbv1alpha1.MariaDB, scheme *runtime.Scheme) *corev1.Pe
 		},
 	}
 
-	volLog.Info("PV created for MariaDB ")
+	logger.Info("PV created for MariaDB ")
 	ctrl.SetControllerReference(v, pv, scheme)
 	return pv
 }
@@ -120,8 +121,8 @@ func GetMariadbVolumeName(v *mariadbv1alpha1.MariaDB) string {
 
 // FetchPVByName search in the cluster for PV managed by the Backup Controller
 func FetchPVByName(name string, Client client.Client) (*corev1.PersistentVolume, error) {
-	reqLogger := logger.WithValues("PV Name", name)
-	reqLogger.Info("Fetching Persistent Volume")
+	// reqLogger := logger.WithValues("PV Name", name)
+	logger.Info("Fetching Persistent Volume")
 
 	pv := &corev1.PersistentVolume{}
 	err := Client.Get(context.TODO(), types.NamespacedName{Name: name}, pv)
@@ -177,6 +178,8 @@ type MariaDBReconciler struct {
 //+kubebuilder:rbac:groups=*,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=*,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=*,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=persistentvolumes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=*,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -200,11 +203,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// TODO(user): your logic here
 
-	// reqLogger.Info("Reconciling MariaDB")
+	// logger.Info("Reconciling MariaDB")
 
-	reqLogger := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
+	// reqLogger := logger.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	//log := r.Log.WithValues("AWSVMScheduler", req.NamespacedName)
-	reqLogger.Info("Reconciling MariaDB")
+	// logger.Info("Reconciling MariaDB")
 
 	logger.Info("Reconciling MariaDB")
 

@@ -1,0 +1,47 @@
+# First, create a service for the first MySQL pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+  type: ClusterIP
+
+# Then, create the backup pod and use the service to access the first MySQL pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backup-pod
+spec:
+  containers:
+  - name: backup
+    image: busybox
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: password
+    volumeMounts:
+    - name: backup-persistent-storage
+      mountPath: /backups
+    command:
+      - sh
+      - -c
+      - |
+        until nc -z mysql-service 3306; do sleep 1; done
+        echo "MySQL service is up, now connecting..."
+        mysqldump -h mysql-service -u root -p$MYSQL_ROOT_PASSWORD database_name > /backups/database_backup.sql
+  - name: mysql
+    image: mysql:5.7
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: password
+    ports:
+    - containerPort: 3306
+  volumes:
+  - name: backup-persistent-storage
+    persistentVolumeClaim:
+      claimName: backup-pvc

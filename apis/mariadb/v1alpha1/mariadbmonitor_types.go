@@ -29,17 +29,26 @@ type MariaDBMonitorSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of MariaDBMonitor. Edit mariadbmonitor_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Size int32 `json:"size"`
+
+	// Database source name
+	DataSourceName string `json:"dataSourceName"`
+
+	// Image name with version
+	Image string `json:"image"`
 }
 
 // MariaDBMonitorStatus defines the observed state of MariaDBMonitor
 type MariaDBMonitorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	MonitorStatus string `json:"monitorStatus"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:path=mariadbmonitors,scope=Namespaced
 
 // MariaDBMonitor is the Schema for the mariadbmonitors API
 type MariaDBMonitor struct {

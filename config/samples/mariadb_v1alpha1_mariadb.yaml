@@ -18,11 +18,11 @@ spec:
   # New Database name
   database: test-db
   # Database additional user details (base64 encoded)
-  username: db-user 
+  username: db-user
   password: db-user 
 
   # Image name with version
-  image: "mariadb/server:10.10.2"
+  image: "mariadb/server:10.3"
 
   # Database storage Path
   dataStoragePath: "/mnt/data" 

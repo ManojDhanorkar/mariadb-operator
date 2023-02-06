@@ -1,0 +1,60 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: mariadb-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: MariaDBBackup is the Schema for the mariadbbackups API
+      displayName: Maria DBBackup
+      kind: MariaDBBackup
+      name: mariadbbackups.mariadb.xyzcompany.com
+      version: v1alpha1
+    - description: MariaDBMonitor is the Schema for the mariadbmonitors API
+      displayName: Maria DBMonitor
+      kind: MariaDBMonitor
+      name: mariadbmonitors.mariadb.xyzcompany.com
+      version: v1alpha1
+    - description: MariaDB is the Schema for the mariadbs API
+      displayName: Maria DB
+      kind: MariaDB
+      name: mariadbs.mariadb.xyzcompany.com
+      version: v1alpha1
+  description: mariadb-operator
+  displayName: mariadb-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - mariadb
+  - go
+  links:
+  - name: Mariadb Operator
+    url: https://mariadb-operator.domain
+  maintainers:
+  - email: abhijeetdandekar333@gmail.com'
+    name: abhijeet
+  - email: sonaldeshmukh2030@gmail.com
+    name: '''sonal'
+  maturity: alpha
+  provider:
+    name: abhijeet,sonal
+  version: 0.0.0
