@@ -442,7 +442,6 @@ func (r *MariaDBBackupReconciler) cronJobForMariaDBBackup(bkp *mariadbv1alpha1.M
 	return cron
 }
 
-
 func (r *MariaDBBackupReconciler) createResources(bkp *mariadbv1alpha1.MariaDBBackup, req ctrl.Request) error {
 	logger1.Info("Creating secondary Backup resources ...")
 	// Check if the database instance was created

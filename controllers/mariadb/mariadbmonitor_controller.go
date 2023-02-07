@@ -571,17 +571,6 @@ func (r *MariaDBMonitorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return *result, err
 
 	}
-
-	result, err = r.ensureServiceMonitor(req, instance, r.monitorServiceMonitor(instance))
-	if result != nil {
-		return *result, err
-	}
-
-	result, err = r.ensureGrafanaDashboard(req, instance, r.monitorGrafanaDashboard(instance))
-	if result != nil {
-		return *result, err
-	}
-
 	err = r.updateMonitorStatus(instance)
 
 	if err != nil {
